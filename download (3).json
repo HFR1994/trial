@@ -1,0 +1,825 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "Roadrunner Backend",
+        "version": "1.0",
+        "description": "Git code: https://github.com/paystand/roadrunner"
+    },
+    "servers": [
+        {
+            "url": "https://api.paystand.{env}/v3",
+            "description": "Roadrunner Backend",
+            "variables": {
+                "env": {
+                    "enum": [
+                        "biz",
+                        "co",
+                        "com"
+                    ],
+                    "default": "biz"
+                }
+            }
+        },
+        {
+            "url": "https://localhost:8081/api/v3",
+            "description": "Localhost Backend"
+        }
+    ],
+    "paths": {
+        "/oauth/token": {
+            "summary": "Get access tokens",
+            "post": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "grant_type": {
+                                        "enum": [
+                                            "client_credentials"
+                                        ],
+                                        "type": "string"
+                                    },
+                                    "scope": {
+                                        "enum": [
+                                            "auth"
+                                        ],
+                                        "type": "string"
+                                    },
+                                    "client_id": {
+                                        "type": "string"
+                                    },
+                                    "client_secret": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "tags": [
+                    "Auth Server"
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/ClientAuthorized"
+                    }
+                },
+                "operationId": "getAccessToken",
+                "summary": "The Access Token"
+            }
+        },
+        "/payments": {
+            "summary": "Payment Model",
+            "parameters": [
+                {
+                    "name": "X-CUSTOMER-ID",
+                    "description": "",
+                    "schema": {
+                        "type": "string"
+                    },
+                    "in": "header",
+                    "required": true
+                }
+            ]
+        },
+        "/payments/:paymentId/refunds": {
+            "post": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Refund"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "tags": [
+                    "Refund",
+                    "Payment"
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/RefundResponse"
+                    }
+                },
+                "operationId": "refundPayment",
+                "summary": "Refund Payments"
+            }
+        },
+        "/payments/secure": {
+            "post": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Request-Payment"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "tags": [
+                    "Payment"
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/PaymentResponse"
+                    }
+                },
+                "operationId": "makeCardPayment",
+                "summary": "Make a Card Payment"
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "CustomFields": {
+                "description": "",
+                "type": "object",
+                "additionalProperties": true
+            },
+            "Address": {
+                "title": "Address",
+                "description": "",
+                "type": "object",
+                "properties": {
+                    "street1": {
+                        "type": "string"
+                    },
+                    "city": {
+                        "type": "string"
+                    },
+                    "state": {
+                        "type": "string"
+                    },
+                    "country": {
+                        "type": "string"
+                    },
+                    "postalCode": {
+                        "type": "string"
+                    }
+                },
+                "example": {
+                    "street1": "1800 Green Hills Rd #110",
+                    "city": "Scotts Valley",
+                    "state": "CA",
+                    "country": "USA",
+                    "postalCode": 95066
+                }
+            },
+            "BaseModel": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "format": "uuid",
+                        "maxLength": 40,
+                        "type": "string",
+                        "readOnly": true
+                    },
+                    "created": {
+                        "format": "date-time",
+                        "default": "NOW()",
+                        "type": "string",
+                        "readOnly": true
+                    },
+                    "lastUpdated": {
+                        "format": "date-time",
+                        "default": "NOW()",
+                        "type": "string",
+                        "readOnly": true
+                    },
+                    "status": {
+                        "default": "active",
+                        "type": "string",
+                        "readOnly": true
+                    },
+                    "ownerId": {
+                        "format": "uuid",
+                        "default": true,
+                        "maxLength": 40,
+                        "type": "string",
+                        "readOnly": true
+                    }
+                }
+            },
+            "Hold": {
+                "title": "Hold",
+                "description": "",
+                "type": "array",
+                "items": {
+                    "allOf": [
+                        {
+                            "$ref": "#/components/schemas/BaseModel"
+                        },
+                        {
+                            "type": "object",
+                            "properties": {
+                                "amount": {
+                                    "type": "string"
+                                },
+                                "currency": {
+                                    "type": "string"
+                                },
+                                "holdTime": {
+                                    "type": "string"
+                                },
+                                "releaseDate": {
+                                    "format": "date-time",
+                                    "type": "string"
+                                },
+                                "resourceId": {
+                                    "type": "string"
+                                },
+                                "resourceType": {
+                                    "type": "string"
+                                },
+                                "object": {
+                                    "default": "hold",
+                                    "type": "string",
+                                    "readOnly": true
+                                }
+                            }
+                        }
+                    ]
+                },
+                "readOnly": true,
+                "example": [
+                    {
+                        "amount": "100.00",
+                        "currency": "USD",
+                        "holdTime": "0",
+                        "releaseDate": "2020-07-21T15:30:53.000Z",
+                        "resourceId": "0e3d26uhlequn19a4dbazkfh",
+                        "resourceType": "Payment",
+                        "created": "2020-07-21T15:30:53.000Z",
+                        "lastUpdated": "2020-07-21T15:30:55.000Z",
+                        "status": "active",
+                        "id": "92ix0am2ksbzp0fhus3zf31c",
+                        "object": "hold"
+                    }
+                ]
+            },
+            "Fee": {
+                "title": "Fee",
+                "description": "",
+                "type": "array",
+                "items": {
+                    "allOf": [
+                        {
+                            "$ref": "#/components/schemas/BaseModel"
+                        },
+                        {
+                            "type": "object",
+                            "properties": {
+                                "amount": {
+                                    "type": "string"
+                                },
+                                "resourceAmount": {
+                                    "type": "string"
+                                },
+                                "currency": {
+                                    "type": "string"
+                                },
+                                "object": {
+                                    "default": "fee",
+                                    "type": "string",
+                                    "readOnly": true
+                                }
+                            }
+                        }
+                    ]
+                },
+                "readOnly": true,
+                "example": [
+                    {
+                        "amount": "2.49",
+                        "resourceAmount": "100.00",
+                        "currency": "USD",
+                        "created": "2020-07-21T15:30:53.000Z",
+                        "lastUpdated": "2020-07-21T15:30:53.000Z",
+                        "status": "active",
+                        "id": "kdeexsxk8bhshs55tcxg13tq",
+                        "object": "fee"
+                    }
+                ]
+            },
+            "Refund": {
+                "title": "Root Type for Refund",
+                "description": "",
+                "type": "object",
+                "properties": {
+                    "amount": {
+                        "type": "string"
+                    },
+                    "currency": {
+                        "type": "string"
+                    },
+                    "description": {
+                        "type": "string"
+                    },
+                    "settlementAmount": {
+                        "type": "string",
+                        "readOnly": true
+                    },
+                    "settlementCurrency": {
+                        "type": "string",
+                        "readOnly": true
+                    },
+                    "paymentId": {
+                        "type": "string",
+                        "readOnly": true
+                    },
+                    "resource": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/Payment"
+                            }
+                        ],
+                        "readOnly": true
+                    },
+                    "resourceId": {
+                        "type": "string",
+                        "readOnly": true
+                    },
+                    "resourceType": {
+                        "enum": [
+                            "Payment"
+                        ],
+                        "type": "string",
+                        "readOnly": true
+                    },
+                    "balanceChangeId": {
+                        "type": "string",
+                        "readOnly": true
+                    },
+                    "feesRefunded": {
+                        "type": "boolean",
+                        "readOnly": true
+                    },
+                    "meta": {
+                        "writeOnly": true,
+                        "type": "object"
+                    }
+                },
+                "example": {
+                    "amount": "355.00",
+                    "currency": "USD",
+                    "description": "A description for the refund",
+                    "meta": {
+
+                    }
+                }
+            },
+            "Payment": {
+                "title": "Payment",
+                "description": "",
+                "required": [
+                    "card",
+                    "cardId",
+                    "payer",
+                    "payerId",
+                    "amount",
+                    "currency"
+                ],
+                "type": "object",
+                "properties": {
+                    "customFields": {
+                        "$ref": "#/components/schemas/CustomFields"
+                    },
+                    "amount": {
+                        "format": "number",
+                        "type": "string"
+                    },
+                    "currency": {
+                        "maxLength": 40,
+                        "type": "string"
+                    },
+                    "settlementAmount": {
+                        "format": "decimal",
+                        "type": "number",
+                        "readOnly": true
+                    },
+                    "settlementCurrency": {
+                        "maxLength": 4,
+                        "type": "string",
+                        "readOnly": true
+                    },
+                    "datePosted": {
+                        "format": "date",
+                        "type": "string",
+                        "readOnly": true
+                    },
+                    "sourceId": {
+                        "maxLength": 40,
+                        "type": "string",
+                        "readOnly": true
+                    },
+                    "sourceType": {
+                        "maxLength": 40,
+                        "enum": [
+                            "Card",
+                            "Bank"
+                        ],
+                        "type": "string",
+                        "readOnly": true
+                    },
+                    "accountKey": {
+                        "maxLength": 128,
+                        "type": "string",
+                        "readOnly": true
+                    },
+                    "accountId": {
+                        "description": "Customer's balance account id",
+                        "maxLength": 40,
+                        "type": "string",
+                        "readOnly": true
+                    },
+                    "balanceChangeId": {
+                        "description": "Id of the initial balance change caused by the payment's creation",
+                        "maxLength": 40,
+                        "type": "string",
+                        "readOnly": true
+                    },
+                    "source": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/Card"
+                            }
+                        ],
+                        "readOnly": true
+                    },
+                    "fees": {
+                        "$ref": "#/components/schemas/Fee"
+                    },
+                    "holds": {
+                        "$ref": "#/components/schemas/Hold"
+                    }
+                },
+                "example": {
+                    "customFields": {
+                        "field1": "answer"
+                    },
+                    "amount": "100.00",
+                    "currency": "USD",
+                    "card": {
+                        "cardNumber": "4242424242424242",
+                        "securityCode": "123",
+                        "expirationMonth": "11",
+                        "expirationYear": "2023"
+                    },
+                    "payer": {
+                        "address": {
+                            "street1": "1800 Green Hills Rd #110",
+                            "city": "Scotts Valley",
+                            "state": "CA",
+                            "country": "USA",
+                            "postalCode": 95066
+                        },
+                        "email": "john@example.com",
+                        "name": "Jon Doe"
+                    }
+                }
+            },
+            "Response-Payment": {
+                "description": "",
+                "allOf": [
+                    {
+                        "type": "object",
+                        "properties": {
+                            "payerId": {
+                                "maxLength": 40,
+                                "type": "string"
+                            },
+                            "payer": {
+                                "$ref": "#/components/schemas/Payer"
+                            }
+                        }
+                    },
+                    {
+                        "$ref": "#/components/schemas/Payment"
+                    }
+                ]
+            },
+            "Payer": {
+                "description": "",
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/BaseModel"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "address": {
+                                "$ref": "#/components/schemas/Address"
+                            },
+                            "email": {
+                                "format": "email",
+                                "type": "string"
+                            },
+                            "name": {
+                                "type": "string"
+                            },
+                            "object": {
+                                "default": "payer",
+                                "type": "string",
+                                "readOnly": true
+                            }
+                        }
+                    }
+                ],
+                "example": {
+                    "address": {
+                        "street1": "1800 Green Hills Rd #110",
+                        "city": "Scotts Valley",
+                        "state": "CA",
+                        "country": "USA",
+                        "postalCode": 95066
+                    },
+                    "email": "john@example.com",
+                    "name": "Jon Doe"
+                }
+            },
+            "Card": {
+                "title": "Card",
+                "description": "",
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/BaseModel"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "cardNumber": {
+                                "writeOnly": true,
+                                "type": "string"
+                            },
+                            "securityCode": {
+                                "type": "string"
+                            },
+                            "expirationMonth": {
+                                "type": "string"
+                            },
+                            "expirationYear": {
+                                "type": "string"
+                            },
+                            "brand": {
+                                "type": "string",
+                                "readOnly": true
+                            },
+                            "last4": {
+                                "type": "string",
+                                "readOnly": true
+                            },
+                            "fingerprint": {
+                                "type": "string",
+                                "readOnly": true
+                            },
+                            "payerId": {
+                                "type": "string",
+                                "readOnly": true
+                            },
+                            "billingAddress": {
+                                "$ref": "#/components/schemas/Address",
+                                "readOnly": true
+                            },
+                            "object": {
+                                "default": "card",
+                                "type": "string",
+                                "readOnly": true
+                            }
+                        }
+                    }
+                ],
+                "example": [
+                    {
+                        "cardNumber": "4242424242424242",
+                        "securityCode": "123",
+                        "expirationMonth": "11",
+                        "expirationYear": "2023"
+                    }
+                ]
+            },
+            "Request-Payment": {
+                "description": "",
+                "allOf": [
+                    {
+                        "oneOf": [
+                            {
+                                "title": "By Id",
+                                "type": "object",
+                                "properties": {
+                                    "payerId": {
+                                        "maxLength": 40,
+                                        "type": "string"
+                                    }
+                                }
+                            },
+                            {
+                                "title": "Full Body",
+                                "type": "object",
+                                "properties": {
+                                    "payer": {
+                                        "$ref": "#/components/schemas/Payer"
+                                    }
+                                }
+                            }
+                        ],
+                        "title": "Payer",
+                        "type": "object"
+                    },
+                    {
+                        "oneOf": [
+                            {
+                                "title": "By Id",
+                                "type": "object",
+                                "properties": {
+                                    "cardId": {
+                                        "maxLength": 40,
+                                        "type": "string"
+                                    }
+                                }
+                            },
+                            {
+                                "title": "Full Body",
+                                "type": "object",
+                                "properties": {
+                                    "card": {
+                                        "$ref": "#/components/schemas/Card"
+                                    }
+                                }
+                            }
+                        ],
+                        "title": "Payer",
+                        "type": "object"
+                    },
+                    {
+                        "$ref": "#/components/schemas/Payment"
+                    }
+                ]
+            }
+        },
+        "responses": {
+            "ClientAuthorized": {
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "access_token": {
+                                    "type": "string"
+                                },
+                                "expires_in": {
+                                    "format": "int32",
+                                    "default": 0,
+                                    "type": "integer"
+                                },
+                                "scope": {
+                                    "type": "string"
+                                },
+                                "refresh_token": {
+                                    "type": "string"
+                                },
+                                "token_type": {
+                                    "type": "string"
+                                }
+                            }
+                        },
+                        "examples": {
+                            "Response Credentials": {
+                                "value": {
+                                    "access_token": "3fzBxHeBIrOUTuCpGTCXFyuLKpiztEl6",
+                                    "expires_in": 1209600,
+                                    "scope": "auth",
+                                    "refresh_token": "w007ZV7Abj50xLgcQK9WEDFNzUTXN652",
+                                    "token_type": "Bearer"
+                                }
+                            }
+                        }
+                    }
+                },
+                "description": "When a client is given access to the system"
+            },
+            "RefundResponse": {
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/Refund"
+                        }
+                    }
+                },
+                "description": ""
+            },
+            "PaymentResponse": {
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/Response-Payment"
+                        },
+                        "examples": {
+                            "Card Payment": {
+                                "value": {
+                                    "amount": "100.00",
+                                    "currency": "USD",
+                                    "settlementAmount": "100.00",
+                                    "settlementCurrency": "USD",
+                                    "datePosted": "2020-07-21T22:13:38.000Z",
+                                    "sourceId": "w9oxsxy49meuianp0pduvqnx",
+                                    "sourceType": "Card",
+                                    "payerId": "oykkyheyw0jykohhpdgrr15k",
+                                    "accountKey": "default",
+                                    "accountId": "t4t2d8cku104pwr3hzyd7tvz",
+                                    "balanceChangeId": "mzavnbi5s1ndqfgfetsp7qg9",
+                                    "created": "2020-07-21T22:13:34.000Z",
+                                    "lastUpdated": "2020-07-21T22:13:38.000Z",
+                                    "status": "posted",
+                                    "ownerId": "hpyp654art8gireggpfo8pvz",
+                                    "id": "mzaa27oxolj6kgulyk5tceec",
+                                    "payer": {
+                                        "name": "John Doe",
+                                        "email": "john@example.com",
+                                        "created": "2020-07-21T22:13:34.000Z",
+                                        "lastUpdated": "2020-07-21T22:13:36.000Z",
+                                        "status": "active",
+                                        "ownerId": "hpyp654art8gireggpfo8pvz",
+                                        "id": "oykkyheyw0jykohhpdgrr15k",
+                                        "address": {
+                                            "street1": "1800 Green Hills Rd #110",
+                                            "city": "Scotts Valley",
+                                            "state": "CA",
+                                            "country": "USA",
+                                            "postalCode": 95066,
+                                            "created": "2020-07-21T22:13:34.000Z",
+                                            "lastUpdated": "2020-07-21T22:13:36.000Z",
+                                            "status": "active",
+                                            "id": "krwy4ddczhz0qk2ncvr4tzw9",
+                                            "object": "address"
+                                        },
+                                        "object": "payer"
+                                    },
+                                    "source": {
+                                        "expirationMonth": "11",
+                                        "expirationYear": "2023",
+                                        "brand": "visa",
+                                        "last4": "4242",
+                                        "fingerprint": "uny7hajv1co4iwva2rlhx9fa",
+                                        "payerId": "oykkyheyw0jykohhpdgrr15k",
+                                        "created": "2020-07-21T22:13:34.000Z",
+                                        "lastUpdated": "2020-07-21T22:13:36.000Z",
+                                        "status": "active",
+                                        "id": "w9oxsxy49meuianp0pduvqnx",
+                                        "billingAddress": {
+                                            "street1": "1800 Green Hills Rd #110",
+                                            "city": "Scotts Valley",
+                                            "state": "CA",
+                                            "country": "USA",
+                                            "postalCode": 95066,
+                                            "created": "2020-07-21T22:13:34.000Z",
+                                            "lastUpdated": "2020-07-21T22:13:36.000Z",
+                                            "status": "active",
+                                            "id": "y5fvu015jhcvm0ifl83pvcmo",
+                                            "object": "address"
+                                        },
+                                        "object": "card"
+                                    },
+                                    "fees": [
+                                        {
+                                            "amount": "2.49",
+                                            "resourceAmount": "100.00",
+                                            "currency": "USD",
+                                            "created": "2020-07-21T22:13:35.000Z",
+                                            "lastUpdated": "2020-07-21T22:13:35.000Z",
+                                            "status": "active",
+                                            "id": "gj8u1wpj2c19k2vj3774sbjd",
+                                            "object": "fee"
+                                        }
+                                    ],
+                                    "holds": [
+                                        {
+                                            "amount": "100.00",
+                                            "currency": "USD",
+                                            "holdTime": "0",
+                                            "releaseDate": "2020-07-21T22:13:36.000Z",
+                                            "resourceId": "mzaa27oxolj6kgulyk5tceec",
+                                            "resourceType": "Payment",
+                                            "created": "2020-07-21T22:13:36.000Z",
+                                            "lastUpdated": "2020-07-21T22:13:38.000Z",
+                                            "status": "active",
+                                            "id": "ykl2b9e3m6q2nia3ot1gjbn7",
+                                            "object": "hold"
+                                        }
+                                    ],
+                                    "object": "payment"
+                                }
+                            }
+                        }
+                    }
+                },
+                "description": ""
+            }
+        }
+    }
+}
